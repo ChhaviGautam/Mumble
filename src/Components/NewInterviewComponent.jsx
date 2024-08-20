@@ -1,20 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
+import { useLocation } from "react-router-dom";
 // import axios from "axios";
-import "./CSS/demo.css"
+import "./CSS/demo.css";
 
-const APP_ID = '69261f031ec443fa8fee25a18a269fb0';
+const APP_ID = "0f3a24a0795741ff862526ab1f67398e";
 // const GOOGLE_TRANSLATE_API_KEY = "YOUR_GOOGLE_TRANSLATE_API_KEY";
 
-
-const NewInterviewComponent = ({
-  uid,
-  displayName,
-  roomId,
-  client,
-  setClient,
-}) => {
+const NewInterviewComponent = () => {
   const [localTracks, setLocalTracks] = useState([]);
+  const [client, setClient] = useState(null);
   const [remoteUsers, setRemoteUsers] = useState({});
   const [localScreenTracks, setLocalScreenTracks] = useState(null);
   const [sharingScreen, setSharingScreen] = useState(false);
@@ -23,6 +18,9 @@ const NewInterviewComponent = ({
   const [translation, setTranslation] = useState([]);
   const [inputText, setInputText] = useState("");
   const [liveTranslation, setLiveTranslation] = useState("");
+
+  const location = useLocation();
+  const { uid, roomId, userName: displayName } = location.state || {};
 
   const chatInputRef = useRef(null);
   const streamsContainerRef = useRef(null);
@@ -35,24 +33,46 @@ const NewInterviewComponent = ({
       const liveTranslationText = await getLiveTranslation();
       setLiveTranslation(liveTranslationText);
     };
-  
+
     fetchLiveTranslation();
-    
+
     // Polling or real-time updates
     const intervalId = setInterval(fetchLiveTranslation, 1000); // Poll every second
-    
+
     return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
+    if (!roomId || !uid || !displayName) {
+      console.error("Room ID, UID, and Display Name are required");
+      return;
+    }
+
     const initClient = async () => {
+      if (client) return;
+
       const rtcClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      setClient(rtcClient);
+
+      rtcClient.on("connection-state-change", (curState, prevState) => {
+        console.log(
+          `Connection state changed from ${prevState} to ${curState}`
+        );
+
+        if (curState === "CONNECTED") {
+          console.log(
+            "Client successfully connected. Now joining the stream..."
+          );
+          joinStream(); // Ensure the stream is joined once the client is connected
+        }
+      });
+
+      rtcClient.on("user-published", handleUserPublished);
+      rtcClient.on("user-left", handleUserLeft);
 
       try {
-        await rtcClient.join(APP_ID, roomId, null, uid); 
-        rtcClient.on("user-published", handleUserPublished);
-        rtcClient.on("user-left", handleUserLeft);
-        setClient(rtcClient);
+        console.log("Joining channel with roomId:", roomId);
+        await rtcClient.join(APP_ID, roomId, null, uid);
       } catch (error) {
         console.error("Failed to join the channel:", error);
       }
@@ -63,17 +83,43 @@ const NewInterviewComponent = ({
     return () => {
       leaveStream();
     };
-  }, [uid, roomId, setClient, client]);
+  }, [uid, roomId, client, setClient]);
 
   const getLiveTranslation = async () => {
     // Simulate API call
     // Replace this with actual speech-to-text and translation service calls
     return "This is a live translation caption"; // Placeholder text
   };
-  
 
   const joinStream = async () => {
     try {
+      if (!client) {
+        console.error(
+          "Client not initialized. Please ensure the client is initialized before joining the stream."
+        );
+        return;
+      }
+
+      // Check if the client is already in a connecting or connected state
+      if (
+        client.connectionState === "CONNECTING" ||
+        client.connectionState === "CONNECTED"
+      ) {
+        console.warn(
+          "Client is already connecting or connected. Skipping join."
+        );
+        return;
+      }
+
+      console.log("Joining channel with APP_ID:", APP_ID);
+      console.log("Room ID:", roomId);
+      console.log("UID:", uid || "UID will be auto-assigned");
+
+      // Attempt to join the Agora channel
+      await client.join(APP_ID, roomId, null, null); // Let Agora auto-assign a UID
+      console.log("Successfully joined channel:", roomId);
+
+      // Create microphone and camera tracks
       const tracks = await AgoraRTC.createMicrophoneAndCameraTracks(
         {},
         {
@@ -84,34 +130,41 @@ const NewInterviewComponent = ({
         }
       );
 
-    if (tracks.length > 0) {
+      if (tracks.length > 0) {
         setLocalTracks(tracks);
-        const micTrack = tracks[0];
-        const cameraTrack = tracks[1];
-  
+        const [micTrack, cameraTrack] = tracks;
+
         if (!micTrack || !cameraTrack) {
           console.error("Error: Microphone or Camera track not found!");
           return;
         }
 
-      const player = `
-                <div className="video__container" id="user-container-${uid}">
-                    <div className="video-player" id="user-${uid}"></div>
-                </div>
-            `;
+        console.log("Camera track initialized:", cameraTrack);
 
-      streamsContainerRef.current.insertAdjacentHTML("beforeend", player);
-      document
-        .getElementById(`user-container-${uid}`)
-        .addEventListener("click", expandVideoFrame);
-        cameraTrack.play(`user-${uid}`);
-      await client.publish([micTrack, cameraTrack]);
-    } else {
-      console.error("Error: No tracks were created!");
+        const player = `
+          <div className="video__container" id="user-container-${uid}">
+            <div className="video-player" id="user-${uid}" style="width: 100%; height: 100%;"></div>
+          </div>
+        `;
+
+        streamsContainerRef.current.insertAdjacentHTML("beforeend", player);
+
+        const videoElement = document.getElementById(`user-${uid}`);
+        if (videoElement) {
+          console.log(`Playing video on element: user-${uid}`);
+          cameraTrack.play(`user-${uid}`);
+        } else {
+          console.error("Video element not found for user:", uid);
+        }
+
+        await client.publish([micTrack, cameraTrack]);
+        console.log("Successfully published the stream");
+      } else {
+        console.error("Error: No tracks were created!");
+      }
+    } catch (error) {
+      console.error("Error joining stream:", error);
     }
-  } catch (error) {
-    console.error("Error joining stream:", error);
-  }
   };
 
   const handleUserPublished = async (user, mediaType) => {
@@ -122,11 +175,13 @@ const NewInterviewComponent = ({
       if (!document.getElementById(`user-container-${user.uid}`)) {
         const player = `
                     <div className="video__container" id="user-container-${user.uid}">
-                        <div className="video-player" id="user-${user.uid}"></div>
+                        <div className="video-player" id="user-${uid}" style="width: 100%; height: 100%; background: none;"></div>
+
                     </div>
                 `;
 
         streamsContainerRef.current.insertAdjacentHTML("beforeend", player);
+
         document
           .getElementById(`user-container-${user.uid}`)
           .addEventListener("click", expandVideoFrame);
@@ -184,44 +239,34 @@ const NewInterviewComponent = ({
   };
 
   const toggleMic = async (e) => {
-    try {
-        if (!localTracks[0]) {
-            console.warn("Microphone track not found!");
-            return;
-          }
+    let button = e.currentTarget;
 
-      let button = e.currentTarget;
-
-      if (localTracks[0].muted) {
-        await localTracks[0].setMuted(false);
-        button.classList.add("active");
-      } else {
-        await localTracks[0].setMuted(true);
-        button.classList.remove("active");
-      }
-    } catch (error) {
-      console.error("Error toggling mic:", error);
+    if (localTracks[0].muted) {
+      await localTracks[0].setMuted(false);
+      button.classList.add("active");
+    } else {
+      await localTracks[0].setMuted(true);
+      button.classList.remove("active");
     }
   };
 
   const toggleCamera = async (e) => {
-    try {
-        if (!localTracks[1]) {
-            console.warn("Camera track not found!");
-            return;
-          }
-      let button = e.currentTarget;
+    let button = e.currentTarget;
 
-      if (localTracks[1].muted) {
-        await localTracks[1].setMuted(false);
-        button.classList.add("active");
-      } else {
-        await localTracks[1].setMuted(true);
-        button.classList.remove("active");
-      }
-    } catch (error) {
-      console.error("Error toggling camera:", error);
+    if (!localTracks[1]) {
+      console.error("Camera track is not initialized.");
+      return;
     }
+
+    if (localTracks[1].muted) {
+      await localTracks[1].setMuted(false);
+      button.classList.add("active");
+    } else {
+      await localTracks[1].setMuted(true);
+      button.classList.remove("active");
+    }
+
+    console.log("Camera muted state:", localTracks[1].muted); // Debug log
   };
 
   const toggleScreen = async (e) => {
@@ -392,7 +437,6 @@ const NewInterviewComponent = ({
 
   return (
     <div className="interview-container">
-
       <div className="interview-main-panel">
         <h2>New Interview</h2>
 
@@ -414,7 +458,7 @@ const NewInterviewComponent = ({
         <div className="live-translate-panel">
           <h4>Translation Results</h4>
           <div className="live-translation">
-          <p>{liveTranslation}</p>
+            <p>{liveTranslation}</p>
           </div>
         </div>
 
@@ -441,11 +485,11 @@ const NewInterviewComponent = ({
         </div>
 
         <div className="stream__actions">
-          <button id="mic-btn" onClick={toggleMic}>
-            Toggle Mic
-          </button>
-          <button id="camera-btn" onClick={toggleCamera}>
+          <button id="camera-btn" className="active" onClick={toggleCamera}>
             Toggle Camera
+          </button>
+          <button id="mic-btn" className="active" onClick={toggleMic}>
+            Toggle Mic
           </button>
           <button id="screen-btn" onClick={toggleScreen}>
             Toggle Screen
@@ -498,7 +542,6 @@ const NewInterviewComponent = ({
           </div>
         </div>
       </div>
-
     </div>
   );
 };
