@@ -1,14 +1,13 @@
 .interview-container {
   display: flex;
-  /* flex-direction: column; */
   width: 100%;
   box-sizing: border-box;
-  flex-direction: column;
+  flex-direction: row; /* Ensure row direction on larger screens */
 }
 
 .interview-main-panel {
   display: flex;
-  width: 100%;
+  width: 60%; /* Adjust for larger screens */
   height: 100vh;
   flex-direction: column;
   padding: 20px;
@@ -49,7 +48,7 @@
 .video-player {
   width: 100%;
   height: 100%;
-  background-color: transparent; 
+  background-color: transparent;
   z-index: 1;
 }
 
@@ -63,7 +62,6 @@
 }
 
 .translation-results {
-  
   background-color: #f1f1f1;
   padding: 10px;
   border-radius: 4px;
@@ -112,15 +110,15 @@
   display: none;
   width: 40%;
   padding: 5px;
-  display: flex;
   flex-direction: column;
   border-left: 1px solid #ddd;
   background-color: #972424;
 }
+
 .interview-chat-panel.visible {
   display: flex; /* Visible when toggled */
-  width: 100%;
 }
+
 .tabs {
   display: flex;
   width: 100%;
@@ -137,11 +135,11 @@
 }
 
 .trans-tab {
-    width: 40%;
+  width: 40%;
 }
 
-.chat-tab{
-    width: 60%;
+.chat-tab {
+  width: 60%;
 }
 
 .trans-tab h3,
@@ -262,8 +260,9 @@
 .stream__actions button#leave-btn:hover {
   background-color: #c82333;
 }
+
 .stream__actions button#chat-toggle-btn {
-  display: none; /* Ensure chat toggle button is visible on smaller screens */
+  display: none; /* Hide chat toggle button by default */
 }
 
 #display-frame {
@@ -281,29 +280,25 @@
 
 @media (max-width: 768px) {
   .interview-container {
-    flex-direction: column;
+    flex-direction: column; /* Stack elements vertically on small screens */
   }
 
   .interview-main-panel {
-    width: 100%;
+    width: 100%; /* Take full width on smaller screens */
   }
+
   .stream__actions button#chat-toggle-btn {
     display: inline-block; /* Show chat toggle button on smaller screens */
   }
 
-
   .interview-chat-panel.visible {
-    display: flex;
     width: 100%;
   }
-
-  .stream__actions button#chat-toggle-btn {
-    display: none;
-  }
 }
+
 @media (min-width: 769px) {
   .interview-container {
-    flex-direction: row;
+    flex-direction: row; /* Row layout on larger screens */
   }
 
   .interview-main-panel {
@@ -311,11 +306,11 @@
   }
 
   .interview-chat-panel {
-    display: flex;
+    display: flex; /* Ensure chat panel is shown on larger screens */
     width: 40%;
   }
 
   .stream__actions button#chat-toggle-btn {
-    display: none !important; /* Ensure chat toggle button is hidden on larger screens */
+    display: none; /* Hide chat toggle button on larger screens */
   }
 }

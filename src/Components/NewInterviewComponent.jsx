@@ -26,7 +26,7 @@ const NewInterviewComponent = () => {
   const streamsContainerRef = useRef(null);
   const displayFrameRef = useRef(null);
   const [isChatVisible, setIsChatVisible] = useState(false);
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 820);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     // Simulate receiving live translation from an API or service
@@ -524,8 +524,7 @@ const NewInterviewComponent = () => {
           </div>
         </div>
       </div>
-      {isChatVisible && (
-      <div className="interview-chat-panel">
+      <div className={`interview-chat-panel ${isSmallScreen && isChatVisible ? 'visible' : ''}`}>
         <div className="tabs">
           <div className="trans-tab">
             <h3>Translation</h3>
@@ -564,7 +563,6 @@ const NewInterviewComponent = () => {
           </div>
         </div>
       </div>
-      )}
     </div>
   );
 };
