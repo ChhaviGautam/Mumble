@@ -6,20 +6,45 @@
 .sidebar {
     width: 250px;
     background-color: #f4f4f4;
-    padding: 20px;
+    padding: 15px;
+    transition: width 0.3s ease-in-out;
+
+}
+
+
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+}
+
+.menu-bars {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #e4007f;
+    padding-top: 25px;
 }
 
 .sidebar h2 {
-    color: #e74c3c;
+    color: #e4007f;
 }
 
-.sidebar ul {
+.sidebar-menu {
     list-style-type: none;
     padding: 0;
+    margin-top: 20px;
+    overflow: hidden;
+    max-height: 0;
+}
+
+.sidebar-menu.active {
+    max-height: 200px; /* Adjust according to the number of items */
 }
 
 .sidebar ul li {
-    margin: 15px 0;
+    margin: 10px 0;
 }
 
 .sidebar ul li a {
@@ -29,7 +54,5 @@
 
 .content {
     flex: 1;
-    padding: 20px;
-    /* height: 100vh; */
     background-color: #fff;
 }

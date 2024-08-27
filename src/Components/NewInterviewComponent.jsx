@@ -25,6 +25,8 @@ const NewInterviewComponent = () => {
   const chatInputRef = useRef(null);
   const streamsContainerRef = useRef(null);
   const displayFrameRef = useRef(null);
+  const [isChatVisible, setIsChatVisible] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 820);
 
   useEffect(() => {
     // Simulate receiving live translation from an API or service
@@ -41,6 +43,22 @@ const NewInterviewComponent = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup listener on unmount
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleChat = () => {
+    setIsChatVisible(!isChatVisible);
+  };
+
 
   useEffect(() => {
     if (!roomId || !uid || !displayName) {
@@ -453,6 +471,28 @@ const NewInterviewComponent = () => {
             ref={displayFrameRef}
             className="video__container"
           ></div>
+          <div className="stream__actions">
+            <button id="camera-btn" className="active" onClick={toggleCamera}>
+              Toggle Camera
+            </button>
+            <button id="mic-btn" className="active" onClick={toggleMic}>
+              Toggle Mic
+            </button>
+            <button id="screen-btn" onClick={toggleScreen}>
+              Toggle Screen
+            </button>
+            <button id="leave-btn" onClick={leaveStream}>
+              Leave
+            </button>
+            <button id="leave-btn" onClick={joinStream}>
+              Join
+            </button>
+            {isSmallScreen && (
+              <button id="chat-toggle-btn" onClick={toggleChat}>
+                Chat
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="live-translate-panel">
@@ -483,26 +523,8 @@ const NewInterviewComponent = () => {
             <button className="edit-btn">✏️</button>
           </div>
         </div>
-
-        <div className="stream__actions">
-          <button id="camera-btn" className="active" onClick={toggleCamera}>
-            Toggle Camera
-          </button>
-          <button id="mic-btn" className="active" onClick={toggleMic}>
-            Toggle Mic
-          </button>
-          <button id="screen-btn" onClick={toggleScreen}>
-            Toggle Screen
-          </button>
-          <button id="leave-btn" onClick={leaveStream}>
-            Leave
-          </button>
-          <button id="leave-btn" onClick={joinStream}>
-            Join
-          </button>
-        </div>
       </div>
-
+      {isChatVisible && (
       <div className="interview-chat-panel">
         <div className="tabs">
           <div className="trans-tab">
@@ -542,6 +564,7 @@ const NewInterviewComponent = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };
